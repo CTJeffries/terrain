@@ -84,18 +84,27 @@ void generateTerrain() {
   double exaggeration = .7;
   int lod = 5;
   int steps = 1 << lod;
-  double[] map = new double[steps + 1][steps + 1];
-  double[] colors = new RGB[steps + 1][steps + 1];
-  FractalTerrain terrain = new FractalTerrain (lod, .5);
+  Triple[] map = Triple[steps + 1][steps + 1];
+  Triple[] colors = RGB[steps + 1][steps + 1];
+  FractalTerrain terrain = FractalTerrain(lod, .5);
   for (int i = 0; i <= steps; ++ i) {
     for (int j = 0; j <= steps; ++ j) {
       double x = 1.0 * i / steps, z = 1.0 * j / steps;
       double altitude = terrain.getAltitude (x, z);
-      map[i][j] = new double(x, altitude * exaggeration, z);
+      map[i][j] = Triple(x, altitude * exaggeration, z);
       colors[i][j] = terrain.getColor (x, z);
     }
   }
 
+  int numTriangles = (steps * steps * 2);
+  Triangle[] triangles = Triangle[numTriangles];
+
+  int triangle = 0;
+  for (int i = 0; i < steps; ++ i) {
+    for (int j = 0; j < steps; ++ j) {
+      triangles[triangle ++] = Triangle (i, j, i + 1, j, i, j + 1);
+      triangles[triangle ++] = Triangle (i + 1, j, i + 1, j + 1, i, j + 1);
+    }
 }
 
 // Calculates color based on altitudes. Pretty simple.
