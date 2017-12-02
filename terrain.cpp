@@ -12,12 +12,13 @@
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-#include <iostream>
-#include "tgaClass.h"
+//#include <iostream>
+//#include "tgaClass.h"
 #include <string.h>
-#include "glm.h"
+//#include "glm.h"
 #include <vector>
 #include <time.h>
+#include "FractalTerrain.hpp"
 
 using namespace std;
 
@@ -35,40 +36,6 @@ using namespace std;
 // Pi and related Numbers
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
-
-// RGB Class
-public class RGB {
-  double r, g, b;
-
-  int toInt (double value) {
-    return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
-      (int) (value * 255.0);
-  }
-
-  public:
-    RGB (double r, double g, double b) {
-      this.r = r;
-      this.g = g;
-      this.b = b;
-    }
-
-    RGB add(RGB rgb) {
-      return new RGB(r + rgb.r, g + rgb.g, b + rgb.b);
-    }
-
-    RGB subtract(RGB rgb) {
-      return new RGB(r - rgb.r, g - rgb.g, b - rgb.b);
-    }
-
-    RGB scale(double scale) {
-      return new RGB(r * scale, g * scale, b * scale);
-    }
-
-    int toRGB() {
-      return (0xff << 24) | (toInt(r) << 16) |
-        (toInt(g) << 8) | toInt(b);
-    }
-}
 
 // Convenient way to store vertices.
 struct vertex {
@@ -119,7 +86,7 @@ void generateTerrain() {
   int steps = 1 << lod;
   double[] map = new double[steps + 1][steps + 1];
   double[] colors = new RGB[steps + 1][steps + 1];
-  Terrain terrain = new FractalTerrain (lod, .5);
+  FractalTerrain terrain = new FractalTerrain (lod, .5);
   for (int i = 0; i <= steps; ++ i) {
     for (int j = 0; j <= steps; ++ j) {
       double x = 1.0 * i / steps, z = 1.0 * j / steps;
