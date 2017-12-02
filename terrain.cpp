@@ -36,6 +36,40 @@ using namespace std;
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
 
+// RGB Class
+public class RGB {
+  double r, g, b;
+
+  int toInt (double value) {
+    return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
+      (int) (value * 255.0);
+  }
+
+  public:
+    RGB (double r, double g, double b) {
+      this.r = r;
+      this.g = g;
+      this.b = b;
+    }
+
+    RGB add(RGB rgb) {
+      return new RGB(r + rgb.r, g + rgb.g, b + rgb.b);
+    }
+
+    RGB subtract(RGB rgb) {
+      return new RGB(r - rgb.r, g - rgb.g, b - rgb.b);
+    }
+
+    RGB scale(double scale) {
+      return new RGB(r * scale, g * scale, b * scale);
+    }
+
+    int toRGB() {
+      return (0xff << 24) | (toInt(r) << 16) |
+        (toInt(g) << 8) | toInt(b);
+    }
+}
+
 // Convenient way to store vertices.
 struct vertex {
   GLfloat x, y, z;
@@ -46,11 +80,6 @@ struct vertex {
 struct normal {
   GLfloat x, y, z;
 } typedef normal;
-
-// Convenient way to store color info.
-struct color {
-  GLfloat r, g, b;
-} typedef color
 
 // Static variables
 static float framesPerSecond = 0.0f;
@@ -82,7 +111,25 @@ void keyboardCheck(void);
 void init(void);
 void resetMats(void);
 void CalculateFrameRate(void);
-color calculateColor(float);
+void generateTerrain(void);
+
+void generateTerrain() {
+  double exaggeration = .7;
+  int lod = 5;
+  int steps = 1 << lod;
+  double[] map = new double[steps + 1][steps + 1];
+  double[] colors = new RGB[steps + 1][steps + 1];
+  Terrain terrain = new FractalTerrain (lod, .5);
+  for (int i = 0; i <= steps; ++ i) {
+    for (int j = 0; j <= steps; ++ j) {
+      double x = 1.0 * i / steps, z = 1.0 * j / steps;
+      double altitude = terrain.getAltitude (x, z);
+      map[i][j] = new double(x, altitude * exaggeration, z);
+      colors[i][j] = terrain.getColor (x, z);
+    }
+  }
+
+}
 
 // Calculates color based on altitudes. Pretty simple.
 color calculateColor(float h) {
