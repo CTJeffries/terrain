@@ -28,34 +28,37 @@ public:
     }
     
     RGB add(RGB rgb) {
-        return new RGB(r + rgb.r, g + rgb.g, b + rgb.b);
+        return RGB(r + rgb.r, g + rgb.g, b + rgb.b);
     }
     
     RGB subtract(RGB rgb) {
-        return new RGB(r - rgb.r, g - rgb.g, b - rgb.b);
+        return RGB(r - rgb.r, g - rgb.g, b - rgb.b);
     }
     
     RGB scale(double scale) {
-        return new RGB(r * scale, g * scale, b * scale);
+        return RGB(r * scale, g * scale, b * scale);
     }
     
     int toRGB() {
         return (0xff << 24) | (toInt(r) << 16) |
         (toInt(g) << 8) | toInt(b);
     }
-}
+};
 
 class FractalTerrain {
-    double[][] terrain;
+    double **terrain;
     double roughness, min, max;
     int divisions;
     
-    RGB blue(0.0, 0.0, 1.0);
-    RGB green(0.0, 1.0, 0.0);
-    RGB white(1.0, 1.0, 1.0);
+    RGB blue;
+    RGB green;
+    RGB white;
     
 public:
     FractalTerrain (int lod, double roughness);
+    ~FractalTerrain(){
+        delete [] terrain;
+    }
     void diamond (int x, int y, int side, double scale);
     void square (int x, int y, int side, double scale);
     double rnd ();
