@@ -10,16 +10,62 @@
 #define FractalTerrain_hpp
 
 #include <iostream>
+#include <math.h>
+#include <vector>
+// RGB Class
+class RGB {
+    double r, g, b;
+    
+    int toInt (double value) {
+        return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
+        (int) (value * 255.0);
+    }
+    
+public:
+    RGB(){
+        this->r = 1.0;
+        this->g = 1.0;
+        this->b = 1.0;
+    }
+    RGB (double r, double g, double b) {
+        this->r = r;
+        this->g = g;
+        this->b = b;
+    }
+    
+    RGB add(RGB rgb) {
+        return RGB(r + rgb.r, g + rgb.g, b + rgb.b);
+    }
+    
+    RGB subtract(RGB rgb) {
+        return RGB(r - rgb.r, g - rgb.g, b - rgb.b);
+    }
+    
+    RGB scale(double scale) {
+        return RGB(r * scale, g * scale, b * scale);
+    }
+    
+    int toRGB() {
+        return (0xff << 24) | (toInt(r) << 16) |
+        (toInt(g) << 8) | toInt(b);
+    }
+};
+
 
 // Triple Class
 class Triple {
   double x, y, z;
 
   public:
+    Triple(){
+        this->x = 0.0;
+        this->y = 0.0;
+        this->z = 0.0;
+    }
     Triple (double x, double y, double z) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
+      this->x = x;
+      this->y = y;
+      this->z = z;
     }
 
     Triple add (Triple t) {
@@ -40,28 +86,34 @@ class Triple {
     }
 
     double length2 () {
-      return dot (this);
+      return dot (*this);
     }
 
     Triple normalize () {
-      return scale (1.0 / Math.sqrt (length2 ()));
+      return scale (1.0 / sqrt (length2 ()));
     }
 
     Triple scale (double scale) {
       return Triple (x * scale, y * scale, z * scale);
     }
-}
+};
 
 // Triangle Class
 class Triangle {
-  int[] i = int[3];
-  int[] j = int[3];
+    int i[3];
+    int j[3];
   Triple n;
-  RGB[] rgb = RGB[3];
-  Color color;
+    RGB color;
+  /*Color color;*/
 
   public:
-    Triangle (int i0, int j0, int i1, int j1, int i2, int j2) {
+    Triangle (){
+        for (int t = 0; t < 3; t++) {
+            i[t] = 0;
+            j[t] = 0;
+        }
+    }
+    Triangle (int i0, int j0, int i1, int j1, int i2, int j2) :  n(0.0, 0.0, 0.0), color(1.0, 1.0, 1.0){
       i[0] = i0;
       i[1] = i1;
       i[2] = i2;
@@ -69,44 +121,11 @@ class Triangle {
       j[1] = j1;
       j[2] = j2;
     }
-}
+};
 
-// RGB Class
-class RGB {
-    double r, g, b;
-
-    int toInt (double value) {
-        return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
-        (int) (value * 255.0);
-    }
-
-public:
-    RGB (double r, double g, double b) {
-        this->r = r;
-        this->g = g;
-        this->b = b;
-    }
-
-    RGB add(RGB rgb) {
-        return RGB(r + rgb.r, g + rgb.g, b + rgb.b);
-    }
-
-    RGB subtract(RGB rgb) {
-        return RGB(r - rgb.r, g - rgb.g, b - rgb.b);
-    }
-
-    RGB scale(double scale) {
-        return RGB(r * scale, g * scale, b * scale);
-    }
-
-    int toRGB() {
-        return (0xff << 24) | (toInt(r) << 16) |
-        (toInt(g) << 8) | toInt(b);
-    }
-}
 
 class FractalTerrain {
-    double[][] terrain;
+    std::vector<std::vector<double> > terrain;
     double roughness, min, max;
     int divisions;
 

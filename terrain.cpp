@@ -10,7 +10,7 @@
 // Modules
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+//#include <math.h>
 #include <unistd.h>
 //#include <iostream>
 //#include "tgaClass.h"
@@ -36,6 +36,9 @@ using namespace std;
 // Pi and related Numbers
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
+#define LOD 5
+#define STEPS (2^LOD)
+#define NUM_TRIANGLES (STEPS * STEPS * 2)
 
 // Convenient way to store vertices.
 struct vertex {
@@ -82,47 +85,39 @@ void generateTerrain(void);
 
 void generateTerrain() {
   double exaggeration = .7;
-  int lod = 5;
-  int steps = 1 << lod;
-  Triple[] map = Triple[steps + 1][steps + 1];
-  Triple[] colors = RGB[steps + 1][steps + 1];
-  FractalTerrain terrain = FractalTerrain(lod, .5);
-  for (int i = 0; i <= steps; ++ i) {
-    for (int j = 0; j <= steps; ++ j) {
-      double x = 1.0 * i / steps, z = 1.0 * j / steps;
+    
+    Triple map[STEPS + 1][STEPS + 1];
+    std::cout << 1 << " " << 1 << std::endl;
+  RGB colors[STEPS + 1][STEPS + 1];
+    std::cout << 1 << " " << 2 << std::endl;
+  FractalTerrain terrain(LOD, .5);
+    std::cout << 1 << " " << 3 << std::endl;
+  for (int i = 0; i <= STEPS; ++ i) {
+    for (int j = 0; j <= STEPS; ++ j) {
+        
+      double x = 1.0 * i / STEPS, z = 1.0 * j / STEPS;
       double altitude = terrain.getAltitude (x, z);
       map[i][j] = Triple(x, altitude * exaggeration, z);
       colors[i][j] = terrain.getColor (x, z);
     }
   }
 
-  int numTriangles = (steps * steps * 2);
-  Triangle[] triangles = Triangle[numTriangles];
+ 
+    Triangle triangles[NUM_TRIANGLES];
 
   int triangle = 0;
-  for (int i = 0; i < steps; ++ i) {
-    for (int j = 0; j < steps; ++ j) {
+  for (int i = 0; i < STEPS; ++ i) {
+    for (int j = 0; j < STEPS; ++ j) {
+        
       triangles[triangle ++] = Triangle (i, j, i + 1, j, i, j + 1);
       triangles[triangle ++] = Triangle (i + 1, j, i + 1, j + 1, i, j + 1);
     }
 }
+    
+    terrain.print();
+}
 
 // Calculates color based on altitudes. Pretty simple.
-color calculateColor(float h) {
-  color temp;
-  if (h < 0.5) {
-    temp.r = 0.0;
-    temp.g = h * 2;
-    temp.b = 1.0 - (h * 2);
-  }
-  else {
-    temp.r = h;
-    temp.g = 1.0 - ((h - 0.5) * 2)
-    temp.b = 0.0;
-  }
-
-  return color;
-}
 
 // Allows quick and easy vertex creation.
 // Takes a vertex v and a normal n and draws a vertex at that location.
@@ -176,6 +171,8 @@ void init(void) {
   glEnable(GL_NORMALIZE);
   glShadeModel(GL_SMOOTH);
   glMatrixMode(GL_PROJECTION);
+    
+    generateTerrain();
 }
 
 // Updates keyboard state when a key is released.

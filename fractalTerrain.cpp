@@ -14,16 +14,14 @@
 FractalTerrain::FractalTerrain (int lod, double roughness) : blue (0.0, 0.0, 1.0), green (0.0, 1.0, 0.0), white(0.0, 0.0, 0.0){
         this->roughness = roughness;
         this->divisions = 1 << lod;
-    terrain = new double*[divisions + 1];
-    for (int i = 0; i < divisions; i++) {
-        terrain[i] = new double[divisions + 1];
-    }
+    //terrain = new double[divisions + 1][divisions + 1];
+    terrain = std::vector<std::vector <double> >(divisions + 1, std::vector<double>(divisions + 1));
     
         terrain[0][0] = rnd ();
         terrain[0][divisions] = rnd ();
         terrain[divisions][divisions] = rnd ();
         terrain[divisions][0] = rnd ();
-        
+    std::cout << "blah";
         double rough = roughness;
         for (int i = 0; i < lod; ++ i) {
             int q = 1 << i, r = 1 << (lod - i), s = r >> 1;
