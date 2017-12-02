@@ -47,6 +47,11 @@ struct normal {
   GLfloat x, y, z;
 } typedef normal;
 
+// Convenient way to store color info.
+struct color {
+  GLfloat r, g, b;
+} typedef color
+
 // Static variables
 static float framesPerSecond = 0.0f;
 static int lastTime	= 0;
@@ -77,6 +82,24 @@ void keyboardCheck(void);
 void init(void);
 void resetMats(void);
 void CalculateFrameRate(void);
+color calculateColor(float);
+
+// Calculates color based on altitudes. Pretty simple.
+color calculateColor(float h) {
+  color temp;
+  if (h < 0.5) {
+    temp.r = 0.0;
+    temp.g = h * 2;
+    temp.b = 1.0 - (h * 2);
+  }
+  else {
+    temp.r = h;
+    temp.g = 1.0 - ((h - 0.5) * 2)
+    temp.b = 0.0;
+  }
+
+  return color;
+}
 
 // Allows quick and easy vertex creation.
 // Takes a vertex v and a normal n and draws a vertex at that location.
