@@ -18,7 +18,7 @@
 //#include "glm.h"
 #include <vector>
 #include <time.h>
-#include "FractalTerrain.hpp"
+#include "fractalTerrain.hpp"
 
 using namespace std;
 
@@ -36,20 +36,9 @@ using namespace std;
 // Pi and related Numbers
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
-#define LOD 5
+#define LOD 12
 #define STEPS (2^LOD)
 #define NUM_TRIANGLES (STEPS * STEPS * 2)
-
-// Convenient way to store vertices.
-struct vertex {
-  GLfloat x, y, z;
-} typedef vertex;
-
-// Convenient way to store normals. (Not different that vertices, but provides
-// clear code.)
-struct normal {
-  GLfloat x, y, z;
-} typedef normal;
 
 // Static variables
 static float framesPerSecond = 0.0f;
@@ -69,10 +58,12 @@ GLfloat no_shine[] = {0.0};
 
 GLfloat light_pos[] = {0.0, 1.0, 0.0, 1.0};
 
+Triangle triangles[NUM_TRIANGLES];
+Triple map[STEPS + 1][STEPS + 1];
+
 // Function prototypes
 // Its probably about time for a header file.
 void display(void);
-void makeVertex(vertex, normal);
 static void mouse(int, int, int, int);
 static void motion(int, int);
 static void keyboardUp(unsigned char, int, int);
@@ -85,16 +76,11 @@ void generateTerrain(void);
 
 void generateTerrain() {
   double exaggeration = .7;
-    
-    Triple map[STEPS + 1][STEPS + 1];
-    std::cout << 1 << " " << 1 << std::endl;
+
   RGB colors[STEPS + 1][STEPS + 1];
-    std::cout << 1 << " " << 2 << std::endl;
-  FractalTerrain terrain(LOD, .5);
-    std::cout << 1 << " " << 3 << std::endl;
+  FractalTerrain terrain(LOD, .6);
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
-        
       double x = 1.0 * i / STEPS, z = 1.0 * j / STEPS;
       double altitude = terrain.getAltitude (x, z);
       map[i][j] = Triple(x, altitude * exaggeration, z);
@@ -102,43 +88,104 @@ void generateTerrain() {
     }
   }
 
- 
-    Triangle triangles[NUM_TRIANGLES];
-
   int triangle = 0;
   for (int i = 0; i < STEPS; ++ i) {
     for (int j = 0; j < STEPS; ++ j) {
-        
       triangles[triangle ++] = Triangle (i, j, i + 1, j, i, j + 1);
       triangles[triangle ++] = Triangle (i + 1, j, i + 1, j + 1, i, j + 1);
     }
-}
-    
-    terrain.print();
-}
+  }
 
-// Calculates color based on altitudes. Pretty simple.
+  double ambient = .3;
+  double diffuse = 4.0;
+  Triple normals[NUM_TRIANGLES][3];
+  Triple sun = Triple (1.0, 3.0, 1.0);
 
-// Allows quick and easy vertex creation.
-// Takes a vertex v and a normal n and draws a vertex at that location.
-void makeVertex(vertex v, normal n) {
-  glNormal3f(n.x, n.y, n.z);
-  glVertex3f(v.x, v.y, v.z);
+  double shade[STEPS + 1][STEPS + 1];
+  for (int i = 0; i <= STEPS; ++ i) {
+    for (int j = 0; j <= STEPS; ++ j) {
+      shade[i][j] = 1.0;
+      Triple vertex = map[i][j];
+      Triple ray = sun.subtract(vertex);
+      double distance = STEPS * sqrt (ray.getX() * ray.getY() + ray.getZ() * ray.getZ());
+      /* step along ray in horizontal units of grid width */
+      for (double place = 1.0; place < distance; place += 1.0) {
+        Triple sample = vertex.add (ray.scale (place / distance));
+        double sx = sample.getX(), sy = sample.getY(), sz = sample.getZ();
+        if ((sx < 0.0) || (sx > 1.0) || (sz < 0.0) || (sz > 1.0))
+          break; /* steppd off terrain */
+        double ground = exaggeration * terrain.getAltitude (sx, sz);
+        if (ground >= sy) {
+          shade[i][j] = 0.0;
+          break;
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < NUM_TRIANGLES; i++)
+    for (int j = 0; j < 3; j++)
+      normals[i][j] = Triple (0.0, 0.0, 0.0);
+  /* compute triangle normals and vertex averaged normals */
+  for (int i = 0; i < NUM_TRIANGLES; ++ i) {
+    Triple v0 = map[triangles[i].i[0]][triangles[i].j[0]],
+      v1 = map[triangles[i].i[1]][triangles[i].j[1]],
+      v2 = map[triangles[i].i[2]][triangles[i].j[2]];
+    Triple normal = v0.subtract (v1).cross (v2.subtract (v1)).normalize ();
+    triangles[i].n = normal;
+    for (int j = 0; j < 3; ++ j) {
+      normals[triangles[i].i[j]][triangles[i].j[j]] =
+        normals[triangles[i].i[j]][triangles[i].j[j]].add (normal);
+    }
+  }
+
+  /* compute vertex colors and triangle average colors */
+  for (int i = 0; i < NUM_TRIANGLES; ++ i) {
+    RGB avg = RGB (0.0, 0.0, 0.0);
+    for (int j = 0; j < 3; ++ j) {
+      int k = triangles[i].i[j], l = triangles[i].j[j];
+      Triple vertex = map[k][l];
+      RGB color = colors[k][l];
+      Triple normal = normals[k][l].normalize ();
+      Triple light = vertex.subtract (sun);
+      double distance2 = light.length2 ();
+      double dot = light.normalize ().dot (normal);
+      double shadow = shade[k][l];
+      double lighting = ambient + diffuse * ((dot < 0.0) ? - dot : 0.0) / distance2 * shadow;
+      color = color.scale (lighting);
+      triangles[i].color[j] = color;
+      avg = avg.add (color);
+    }
+    triangles[i].finalColor = avg.scale (1.0 / 3.0);
+  }
 }
 
 // Display callback.
 void display(void) {
-  resetMats();
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
-  glEnable(GL_LIGHT0);
+  // glEnable(GL_LIGHT0);
+  //
+  // // Place the light.
+  // glPushMatrix();
+  //   glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+  // glPopMatrix();
 
-  // Place the light.
-  glPushMatrix();
-    glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
-  glPopMatrix();
+  gluLookAt(1.2, 1.2, 1.2, 0.01, 0.01, 0.01, 0, 1, 0);
 
-  resetMats();
+  for (int k=0; k<NUM_TRIANGLES; k++) {
+    Triangle t = triangles[k];
+    glBegin(GL_TRIANGLES);
+      glColor3f(t.finalColor.r, t.finalColor.g, t.finalColor.b);
+      glNormal3f(t.n.getX(), t.n.getY(), t.n.getZ());
+      glVertex3f(map[t.i[0]][t.j[0]].getX(), map[t.i[0]][t.j[0]].getY(), map[t.i[0]][t.j[0]].getZ());
+      glNormal3f(t.n.getX(), t.n.getY(), t.n.getZ());
+      glVertex3f(map[t.i[1]][t.j[1]].getX(), map[t.i[1]][t.j[1]].getY(), map[t.i[1]][t.j[1]].getZ());
+      glNormal3f(t.n.getX(), t.n.getY(), t.n.getZ());
+      glVertex3f(map[t.i[2]][t.j[2]].getX(), map[t.i[2]][t.j[2]].getY(), map[t.i[2]][t.j[2]].getZ());
+    glEnd();
+  }
+
   glutSwapBuffers();
 	CalculateFrameRate();
 }
@@ -166,13 +213,12 @@ void resetMats(void) {
 void init(void) {
   glClearColor(0.7, 0.7, 0.7, 1.0);
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_LIGHTING);
+  //glEnable(GL_LIGHTING);
   glEnable(GL_AUTO_NORMAL);
   glEnable(GL_NORMALIZE);
   glShadeModel(GL_SMOOTH);
   glMatrixMode(GL_PROJECTION);
-    
-    generateTerrain();
+  generateTerrain();
 }
 
 // Updates keyboard state when a key is released.

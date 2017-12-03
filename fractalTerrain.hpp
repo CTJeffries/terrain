@@ -14,14 +14,14 @@
 #include <vector>
 // RGB Class
 class RGB {
-    double r, g, b;
-    
+
     int toInt (double value) {
         return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
         (int) (value * 255.0);
     }
-    
+
 public:
+    double r, g, b;
     RGB(){
         this->r = 1.0;
         this->g = 1.0;
@@ -32,19 +32,19 @@ public:
         this->g = g;
         this->b = b;
     }
-    
+
     RGB add(RGB rgb) {
         return RGB(r + rgb.r, g + rgb.g, b + rgb.b);
     }
-    
+
     RGB subtract(RGB rgb) {
         return RGB(r - rgb.r, g - rgb.g, b - rgb.b);
     }
-    
+
     RGB scale(double scale) {
         return RGB(r * scale, g * scale, b * scale);
     }
-    
+
     int toRGB() {
         return (0xff << 24) | (toInt(r) << 16) |
         (toInt(g) << 8) | toInt(b);
@@ -96,24 +96,36 @@ class Triple {
     Triple scale (double scale) {
       return Triple (x * scale, y * scale, z * scale);
     }
+
+    double getX() {
+      return this->x;
+    }
+
+    double getY() {
+      return this->y;
+    }
+
+    double getZ() {
+      return this->z;
+    }
 };
 
 // Triangle Class
 class Triangle {
+  public:
     int i[3];
     int j[3];
-  Triple n;
-    RGB color;
-  /*Color color;*/
+    Triple n;
+    RGB color[3];
+    RGB finalColor;
 
-  public:
     Triangle (){
         for (int t = 0; t < 3; t++) {
             i[t] = 0;
             j[t] = 0;
         }
     }
-    Triangle (int i0, int j0, int i1, int j1, int i2, int j2) :  n(0.0, 0.0, 0.0), color(1.0, 1.0, 1.0){
+    Triangle (int i0, int j0, int i1, int j1, int i2, int j2) :  n(0.0, 0.0, 0.0){
       i[0] = i0;
       i[1] = i1;
       i[2] = i2;
@@ -127,11 +139,8 @@ class Triangle {
 class FractalTerrain {
     std::vector<std::vector<double> > terrain;
     double roughness, min, max;
+    RGB blue, green, white;
     int divisions;
-
-    RGB blue;
-    RGB green;
-    RGB white;
 
 public:
     FractalTerrain (int lod, double roughness);
