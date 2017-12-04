@@ -36,9 +36,9 @@ using namespace std;
 // Pi and related Numbers
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
-#define LOD 12
-#define STEPS (2^LOD)
-#define NUM_TRIANGLES (STEPS * STEPS * 2)
+#define LOD 7
+#define STEPS ((int)pow(2, LOD))
+
 
 // Static variables
 static float framesPerSecond = 0.0f;
@@ -58,7 +58,8 @@ GLfloat no_shine[] = {0.0};
 
 GLfloat light_pos[] = {0.0, 1.0, 0.0, 1.0};
 
-Triangle triangles[NUM_TRIANGLES];
+long NUM_TRIANGLES = STEPS * STEPS * 2;
+vector<Triangle> triangles;
 Triple map[STEPS + 1][STEPS + 1];
 
 // Function prototypes
@@ -78,7 +79,7 @@ void generateTerrain() {
   double exaggeration = .7;
 
   RGB colors[STEPS + 1][STEPS + 1];
-  FractalTerrain terrain(LOD, .6);
+  FractalTerrain terrain(LOD, .5);
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
       double x = 1.0 * i / STEPS, z = 1.0 * j / STEPS;
@@ -88,11 +89,10 @@ void generateTerrain() {
     }
   }
 
-  int triangle = 0;
   for (int i = 0; i < STEPS; ++ i) {
     for (int j = 0; j < STEPS; ++ j) {
-      triangles[triangle ++] = Triangle (i, j, i + 1, j, i, j + 1);
-      triangles[triangle ++] = Triangle (i + 1, j, i + 1, j + 1, i, j + 1);
+      triangles.push_back(Triangle (i, j, i + 1, j, i, j + 1));
+      triangles.push_back(Triangle (i + 1, j, i + 1, j + 1, i, j + 1));
     }
   }
 
@@ -123,7 +123,7 @@ void generateTerrain() {
     }
   }
 
-  for (int i = 0; i < NUM_TRIANGLES; i++)
+  for (long i = 0; i < NUM_TRIANGLES; i++)
     for (int j = 0; j < 3; j++)
       normals[i][j] = Triple (0.0, 0.0, 0.0);
   /* compute triangle normals and vertex averaged normals */
@@ -140,7 +140,7 @@ void generateTerrain() {
   }
 
   /* compute vertex colors and triangle average colors */
-  for (int i = 0; i < NUM_TRIANGLES; ++ i) {
+  for (long i = 0; i < NUM_TRIANGLES; ++ i) {
     RGB avg = RGB (0.0, 0.0, 0.0);
     for (int j = 0; j < 3; ++ j) {
       int k = triangles[i].i[j], l = triangles[i].j[j];
@@ -173,7 +173,7 @@ void display(void) {
 
   gluLookAt(1.2, 1.2, 1.2, 0.01, 0.01, 0.01, 0, 1, 0);
 
-  for (int k=0; k<NUM_TRIANGLES; k++) {
+  for (long k=0; k<NUM_TRIANGLES; k++) {
     Triangle t = triangles[k];
     glBegin(GL_TRIANGLES);
       glColor3f(t.finalColor.r, t.finalColor.g, t.finalColor.b);
