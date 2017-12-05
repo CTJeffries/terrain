@@ -11,15 +11,15 @@
 
 
 
-FractalTerrain::FractalTerrain (int lod, double roughness) : blue (0.0, 0.0, 1.0), green (0.0, 1.0, 0.0), white(0.0, 0.0, 0.0){
+FractalTerrain::FractalTerrain (int lod, double roughness) {
         this->roughness = roughness;
         this->divisions = 1 << lod;
         //terrain = new double[divisions + 1][divisions + 1];
         terrain = std::vector<std::vector <double> >(divisions + 1, std::vector<double>(divisions + 1));
 
-        blue = RGB(0.0, 0.0, 1.0);
-        green = RGB(0.0, 1.0, 0.0);
-        white = RGB(1.0, 1.0, 1.0);
+        blue = RGB(0.0, 0.3, 1.0);
+        green = RGB(0.0, 0.8, 0.1);
+        white = RGB(0.68, 0.68, 0.7);
 
         terrain[0][0] = rnd ();
         terrain[0][divisions] = rnd ();

@@ -36,9 +36,6 @@ using namespace std;
 // Pi and related Numbers
 #define PI 3.141592653
 #define RADIANS_TO_DEGREES (180 / PI)
-#define LOD 7
-#define STEPS ((int)pow(2, LOD))
-
 
 // Static variables
 static float framesPerSecond = 0.0f;
@@ -56,11 +53,16 @@ static GLsizei wh = 1000, ww = 1000;
 GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
 GLfloat no_shine[] = {0.0};
 
-GLfloat light_pos[] = {0.0, 1.0, 0.0, 1.0};
+GLfloat light_pos[] = {1.0, 3.0, 1.0, 1.0};
 
-long NUM_TRIANGLES = STEPS * STEPS * 2;
+int LOD = 5;
+float rough = 0.5;
+long long STEPS = (long long) pow(2, LOD);
+long long NUM_TRIANGLES = STEPS * STEPS * 2;
 vector<Triangle> triangles;
-Triple map[STEPS + 1][STEPS + 1];
+vector<vector<Triple>> map(STEPS+1, vector<Triple>(STEPS+1));
+float rot = 0;
+int water = 0;
 
 // Function prototypes
 // Its probably about time for a header file.
@@ -78,8 +80,8 @@ void generateTerrain(void);
 void generateTerrain() {
   double exaggeration = .7;
 
-  RGB colors[STEPS + 1][STEPS + 1];
-  FractalTerrain terrain(LOD, .5);
+  vector<vector<RGB>> colors(STEPS+1, vector<RGB>(STEPS+1));
+  FractalTerrain terrain(LOD, rough);
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
       double x = 1.0 * i / STEPS, z = 1.0 * j / STEPS;
@@ -164,14 +166,18 @@ void generateTerrain() {
 void display(void) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
-  // glEnable(GL_LIGHT0);
-  //
-  // // Place the light.
-  // glPushMatrix();
-  //   glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
-  // glPopMatrix();
+  glEnable(GL_LIGHT0);
 
-  gluLookAt(1.2, 1.2, 1.2, 0.01, 0.01, 0.01, 0, 1, 0);
+  // Place the light.
+  glPushMatrix();
+    glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+  glPopMatrix();
+
+  gluLookAt(0.9, 1.2, 0.9, 0.0, 0.2, 0.0, 0, 1, 0);
+
+  glRotatef(rot, 0.0, 1.0, 0.0);
+  glPushMatrix();
+  glTranslatef(-0.5, 0.0, -0.5);
 
   for (long k=0; k<NUM_TRIANGLES; k++) {
     Triangle t = triangles[k];
@@ -186,16 +192,98 @@ void display(void) {
     glEnd();
   }
 
+  for(long k=0; k<STEPS; k++) {
+    glColor3f(0.35, 0.3, 0.27);
+    glBegin(GL_QUADS);
+      glVertex3f(map[k][0].getX(), map[k][0].getY(), map[k][0].getZ());
+      glVertex3f(map[k][0].getX(), -2.0, map[k][0].getZ());
+      glVertex3f(map[k+1][0].getX(), -2.0, map[k+1][0].getZ());
+      glVertex3f(map[k+1][0].getX(), map[k+1][0].getY(), map[k+1][0].getZ());
+    glEnd();
+
+    glBegin(GL_QUADS);
+      glVertex3f(map[k][STEPS].getX(), map[k][STEPS].getY(), map[k][STEPS].getZ());
+      glVertex3f(map[k][STEPS].getX(), -2.0, map[k][STEPS].getZ());
+      glVertex3f(map[k+1][STEPS].getX(), -2.0, map[k+1][STEPS].getZ());
+      glVertex3f(map[k+1][STEPS].getX(), map[k+1][STEPS].getY(), map[k+1][STEPS].getZ());
+
+    glEnd();
+
+    glBegin(GL_QUADS);
+      glVertex3f(map[0][k].getX(), map[0][k].getY(), map[0][k].getZ());
+      glVertex3f(map[0][k].getX(), -2.0, map[0][k].getZ());
+      glVertex3f(map[0][k+1].getX(), -2.0, map[0][k+1].getZ());
+      glVertex3f(map[0][k+1].getX(), map[0][k+1].getY(), map[0][k+1].getZ());
+    glEnd();
+
+    glBegin(GL_QUADS);
+      glVertex3f(map[STEPS][k].getX(), map[STEPS][k].getY(), map[STEPS][k].getZ());
+      glVertex3f(map[STEPS][k].getX(), -2.0, map[STEPS][k].getZ());
+      glVertex3f(map[STEPS][k+1].getX(), -2.0, map[STEPS][k+1].getZ());
+      glVertex3f(map[STEPS][k+1].getX(), map[STEPS][k+1].getY(), map[STEPS][k+1].getZ());
+    glEnd();
+  }
+
+  if (water == 1) {
+    glColor3f(0.0, 0.2, 1.0);
+    glBegin(GL_QUADS);
+      glVertex3f(0.0, 0.2, 0.0);
+      glVertex3f(1.0, 0.2, 0.0);
+      glVertex3f(1.0, 0.2, 1.0);
+      glVertex3f(0.0, 0.2, 1.0);
+    glEnd();
+
+    for(long k=0; k<STEPS; k++) {
+      if (map[k][0].getY() <= 0.2) {
+        glBegin(GL_QUADS);
+          glVertex3f(map[k][0].getX(), 0.2, map[k][0].getZ());
+          glVertex3f(map[k][0].getX(), map[k][0].getY(), map[k][0].getZ());
+          glVertex3f(map[k+1][0].getX(), map[k+1][0].getY(), map[k+1][0].getZ());
+          glVertex3f(map[k+1][0].getX(), 0.2, map[k+1][0].getZ());
+        glEnd();
+      }
+
+      if (map[k][STEPS].getY() <= 0.2) {
+        glBegin(GL_QUADS);
+          glVertex3f(map[k][STEPS].getX(), 0.2, map[k][STEPS].getZ());
+          glVertex3f(map[k][STEPS].getX(), map[k][STEPS].getY(), map[k][STEPS].getZ());
+          glVertex3f(map[k+1][STEPS].getX(), map[k+1][STEPS].getY(), map[k+1][STEPS].getZ());
+          glVertex3f(map[k+1][STEPS].getX(), 0.2, map[k+1][STEPS].getZ());
+        glEnd();
+      }
+
+      if (map[0][k].getY() <= 0.2) {
+        glBegin(GL_QUADS);
+          glVertex3f(map[0][k].getX(), 0.2, map[0][k].getZ());
+          glVertex3f(map[0][k].getX(), map[0][k].getY(), map[0][k].getZ());
+          glVertex3f(map[0][k+1].getX(), map[0][k+1].getY(), map[0][k+1].getZ());
+          glVertex3f(map[0][k+1].getX(), 0.2, map[0][k+1].getZ());
+        glEnd();
+      }
+
+      if (map[STEPS][k].getY() <= 0.2) {
+        glBegin(GL_QUADS);
+          glVertex3f(map[STEPS][k].getX(), 0.2, map[STEPS][k].getZ());
+          glVertex3f(map[STEPS][k].getX(), map[STEPS][k].getY(), map[STEPS][k].getZ());
+          glVertex3f(map[STEPS][k+1].getX(), map[STEPS][k+1].getY(), map[STEPS][k+1].getZ());
+          glVertex3f(map[STEPS][k+1].getX(), 0.2, map[STEPS][k+1].getZ());
+        glEnd();
+      }
+    }
+  }
+
+  glPopMatrix();
+
   glutSwapBuffers();
 	CalculateFrameRate();
 }
 
-// Unused.
+// For camera rotation.
 static void mouse(int button, int state, int x, int y) {
   NULL;
 }
 
-// Unused.
+// For camera rotation.
 static void motion(int x, int y) {
   NULL;
 }
@@ -213,11 +301,13 @@ void resetMats(void) {
 void init(void) {
   glClearColor(0.7, 0.7, 0.7, 1.0);
   glEnable(GL_DEPTH_TEST);
-  //glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHTING);
   glEnable(GL_AUTO_NORMAL);
   glEnable(GL_NORMALIZE);
   glShadeModel(GL_SMOOTH);
   glMatrixMode(GL_PROJECTION);
+  glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+  glEnable(GL_COLOR_MATERIAL);
   generateTerrain();
 }
 
@@ -241,7 +331,7 @@ void myReshape(int w, int h) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   glViewport(0, 0, w, h);
-  gluPerspective(75.0f, (GLfloat)w/(GLfloat)h, 0.1, 4000.0);
+  gluPerspective(55.0f, (GLfloat)w/(GLfloat)h, 0.1, 4000.0);
   glMatrixMode(GL_MODELVIEW);
   ww = w;
  	wh = h;
@@ -250,6 +340,8 @@ void myReshape(int w, int h) {
 // Idle callback. Drives the game for the most part.
 void idle() {
   keyboardCheck();
+  rot += 0.3;
+  if (rot > 360.0) rot = rot - 360.0;
   glutPostRedisplay();
 }
 
@@ -266,6 +358,49 @@ void CalculateFrameRate(void) {
 	  frameCount = 0;
 	}
 	glutPostRedisplay();
+}
+
+void menuFunc(int id) {
+  if (id == 1) {
+    if (water == 0) {
+      water = 1;
+    }
+    else {
+      water = 0;
+    }
+  }
+  if (id == 2) {
+    generateTerrain();
+  }
+}
+
+void lodMenu(int id) {
+  LOD = id;
+
+  STEPS = (long long) pow(2, LOD);
+  NUM_TRIANGLES = STEPS * STEPS * 2;
+  triangles.clear();
+  map.resize(STEPS+1);
+  for (int i=0; i<map.size(); i++) {
+    map[i].resize(STEPS+1);
+  }
+
+  generateTerrain();
+}
+
+void roughMenu(int id) {
+  if (id == 1) {
+    if (rough < 0.95) {
+      rough = rough + 0.05;
+    }
+  }
+  else if (id == 2) {
+    if (rough > 0.05) {
+      rough = rough - 0.05;
+    }
+  }
+
+  generateTerrain();
 }
 
 int main(int argc, char **argv) {
@@ -293,6 +428,25 @@ int main(int argc, char **argv) {
 
   // Initialization function.
   init();
+
+  // Menus
+  int menu, l_menu, r_menu;
+  r_menu = glutCreateMenu(roughMenu);
+  glutAddMenuEntry("  +  ", 1);
+  glutAddMenuEntry("  -  ", 2);
+  l_menu = glutCreateMenu(lodMenu);
+  glutAddMenuEntry("  2  ", 2);
+  glutAddMenuEntry("  3  ", 3);
+  glutAddMenuEntry("  4  ", 4);
+  glutAddMenuEntry("  5  ", 5);
+  glutAddMenuEntry("  6  ", 6);
+  glutAddMenuEntry("  7  ", 7);
+  menu = glutCreateMenu(menuFunc);
+  glutAddMenuEntry("Water", 1);
+  glutAddMenuEntry("Reset", 2);
+  glutAddSubMenu("LOD", l_menu);
+  glutAddSubMenu("Roughness", r_menu);
+  glutAttachMenu(GLUT_RIGHT_BUTTON);
 
   // Mainloop
   glutMainLoop();
