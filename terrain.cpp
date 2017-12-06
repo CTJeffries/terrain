@@ -60,7 +60,7 @@ float rough = 0.5;
 long long STEPS = (long long) pow(2, LOD);
 long long NUM_TRIANGLES = STEPS * STEPS * 2;
 vector<Triangle> triangles;
-vector<vector<Triple>> map(STEPS+1, vector<Triple>(STEPS+1));
+vector<vector<Triple> > map(STEPS+1, vector<Triple>(STEPS+1));
 float rot = 0;
 int water = 0;
 
@@ -80,7 +80,7 @@ void generateTerrain(void);
 void generateTerrain() {
   double exaggeration = .7;
 
-  vector<vector<RGB>> colors(STEPS+1, vector<RGB>(STEPS+1));
+  vector<vector<RGB> > colors(STEPS+1, vector<RGB>(STEPS+1));
   FractalTerrain terrain(LOD, rough);
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
@@ -100,7 +100,8 @@ void generateTerrain() {
 
   double ambient = .3;
   double diffuse = 4.0;
-  Triple normals[NUM_TRIANGLES][3];
+  //Triple normals[NUM_TRIANGLES][3];
+    vector<vector <Triple> > normals(NUM_TRIANGLES, vector<Triple>(3));
   Triple sun = Triple (1.0, 3.0, 1.0);
 
   double shade[STEPS + 1][STEPS + 1];
