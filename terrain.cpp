@@ -100,11 +100,10 @@ void generateTerrain() {
 
   double ambient = .3;
   double diffuse = 4.0;
-  //Triple normals[NUM_TRIANGLES][3];
-    vector<vector <Triple> > normals(NUM_TRIANGLES, vector<Triple>(3));
+  vector<vector<Triple> > normals(STEPS+1, vector<Triple>(STEPS+1));
   Triple sun = Triple (1.0, 3.0, 1.0);
 
-  double shade[STEPS + 1][STEPS + 1];
+  vector<vector <double> > shade(STEPS + 1, vector<double>(STEPS + 1));
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
       shade[i][j] = 1.0;
@@ -126,38 +125,38 @@ void generateTerrain() {
     }
   }
 
-  for (long i = 0; i < NUM_TRIANGLES; i++)
-    for (int j = 0; j < 3; j++)
-      normals[i][j] = Triple (0.0, 0.0, 0.0);
+  for (long i = 0; i < STEPS; i++)
+    for (int j = 0; j < STEPS; j++)
+      normals[i][j] = Triple(0.0, 0.0, 0.0);
   /* compute triangle normals and vertex averaged normals */
   for (int i = 0; i < NUM_TRIANGLES; ++ i) {
     Triple v0 = map[triangles[i].i[0]][triangles[i].j[0]],
       v1 = map[triangles[i].i[1]][triangles[i].j[1]],
       v2 = map[triangles[i].i[2]][triangles[i].j[2]];
-    Triple normal = v0.subtract (v1).cross (v2.subtract (v1)).normalize ();
+    Triple normal = v0.subtract(v1).cross(v2.subtract(v1)).normalize();
     triangles[i].n = normal;
     for (int j = 0; j < 3; ++ j) {
       normals[triangles[i].i[j]][triangles[i].j[j]] =
-        normals[triangles[i].i[j]][triangles[i].j[j]].add (normal);
+        normals[triangles[i].i[j]][triangles[i].j[j]].add(normal);
     }
   }
 
   /* compute vertex colors and triangle average colors */
-  for (long i = 0; i < NUM_TRIANGLES; ++ i) {
-    RGB avg = RGB (0.0, 0.0, 0.0);
-    for (int j = 0; j < 3; ++ j) {
+  for (long i = 0; i < NUM_TRIANGLES; ++i) {
+    RGB avg = RGB(0.0, 0.0, 0.0);
+    for (int j = 0; j < 3; ++j) {
       int k = triangles[i].i[j], l = triangles[i].j[j];
       Triple vertex = map[k][l];
       RGB color = colors[k][l];
-      Triple normal = normals[k][l].normalize ();
-      Triple light = vertex.subtract (sun);
-      double distance2 = light.length2 ();
-      double dot = light.normalize ().dot (normal);
+      Triple normal = normals[k][l].normalize();
+      Triple light = vertex.subtract(sun);
+      double distance2 = light.length2();
+      double dot = light.normalize().dot(normal);
       double shadow = shade[k][l];
       double lighting = ambient + diffuse * ((dot < 0.0) ? - dot : 0.0) / distance2 * shadow;
-      color = color.scale (lighting);
+      color = color.scale(lighting);
       triangles[i].color[j] = color;
-      avg = avg.add (color);
+      avg = avg.add(color);
     }
     triangles[i].finalColor = avg.scale (1.0 / 3.0);
   }
