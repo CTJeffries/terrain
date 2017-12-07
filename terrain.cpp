@@ -99,7 +99,7 @@ void generateTerrain() {
   }
 
   double ambient = .3;
-  double diffuse = 4.0;
+  double diffuse = 6.0;
   vector<vector<Triple> > normals(STEPS+1, vector<Triple>(STEPS+1));
   Triple sun = Triple (1.0, 3.0, 1.0);
 
