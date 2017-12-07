@@ -14,7 +14,6 @@
 #include <vector>
 // RGB Class
 class RGB {
-
     int toInt (double value) {
         return (value < 0.0) ? 0 : (value > 1.0) ? 255 :
         (int) (value * 255.0);
@@ -150,6 +149,7 @@ public:
     double getAltitude (double i, double j);
     RGB getColor (double i, double j);
 
+    // Used for debug.
     void print(){
         for (int i = 0; i < divisions; i++) {
             for (int j = 0; j < divisions; j++) {

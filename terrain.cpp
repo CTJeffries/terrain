@@ -46,6 +46,8 @@ long long STEPS = (long long) pow(2, LOD);
 long long NUM_TRIANGLES = STEPS * STEPS * 2;
 float rot = 0;
 int water = 0;
+float waterLevel = 0.2;
+float exaggeration = 0.6;
 
 // Global data structures
 int keyboard[256] = {0};
@@ -58,11 +60,9 @@ static GLsizei wh = 1000, ww = 1000;
 // Globals materials & light info.
 GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
 GLfloat no_shine[] = {0.0};
-
 GLfloat light_pos[] = {1.0, 3.0, 1.0, 1.0};
 
 // Function prototypes
-// Its probably about time for a header file.
 void display(void);
 void keyboardCheck(void);
 void init(void);
@@ -71,11 +71,10 @@ void CalculateFrameRate(void);
 void generateTerrain(void);
 void idle(void);
 
+// Generates the terrain values.
 void generateTerrain() {
-  double exaggeration = .7;
-
   vector<vector<RGB> > colors(STEPS+1, vector<RGB>(STEPS+1));
-  // Generates terrain.
+  // Generates terrain using square diamond.
   FractalTerrain terrain(LOD, rough);
 
   // Populate map and colors from terrain.
@@ -178,8 +177,10 @@ void display(void) {
     glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
   glPopMatrix();
 
+  // Look at the cetner from an angle.
   gluLookAt(0.9, 1.2, 0.9, 0.0, 0.2, 0.0, 0, 1, 0);
 
+  // Rotate around the center of the terrain.
   glRotatef(rot, 0.0, 1.0, 0.0);
   glPushMatrix();
   glTranslatef(-0.5, 0.0, -0.5);
@@ -233,48 +234,48 @@ void display(void) {
 
   // If water, draw water.
   if (water == 1) {
-    glColor3f(0.0, 0.2, 1.0);
+    glColor3f(0.0, waterLevel, 1.0);
     glBegin(GL_QUADS);
-      glVertex3f(0.0, 0.2, 0.0);
-      glVertex3f(1.0, 0.2, 0.0);
-      glVertex3f(1.0, 0.2, 1.0);
-      glVertex3f(0.0, 0.2, 1.0);
+      glVertex3f(0.0, waterLevel, 0.0);
+      glVertex3f(1.0, waterLevel, 0.0);
+      glVertex3f(1.0, waterLevel, 1.0);
+      glVertex3f(0.0, waterLevel, 1.0);
     glEnd();
 
     for(long k=0; k<STEPS; k++) {
-      if (map[k][0].getY() <= 0.2) {
+      if (map[k][0].getY() <= waterLevel) {
         glBegin(GL_QUADS);
-          glVertex3f(map[k][0].getX(), 0.2, map[k][0].getZ());
+          glVertex3f(map[k][0].getX(), waterLevel, map[k][0].getZ());
           glVertex3f(map[k][0].getX(), map[k][0].getY(), map[k][0].getZ());
           glVertex3f(map[k+1][0].getX(), map[k+1][0].getY(), map[k+1][0].getZ());
-          glVertex3f(map[k+1][0].getX(), 0.2, map[k+1][0].getZ());
+          glVertex3f(map[k+1][0].getX(), waterLevel, map[k+1][0].getZ());
         glEnd();
       }
 
-      if (map[k][STEPS].getY() <= 0.2) {
+      if (map[k][STEPS].getY() <= waterLevel) {
         glBegin(GL_QUADS);
-          glVertex3f(map[k][STEPS].getX(), 0.2, map[k][STEPS].getZ());
+          glVertex3f(map[k][STEPS].getX(), waterLevel, map[k][STEPS].getZ());
           glVertex3f(map[k][STEPS].getX(), map[k][STEPS].getY(), map[k][STEPS].getZ());
           glVertex3f(map[k+1][STEPS].getX(), map[k+1][STEPS].getY(), map[k+1][STEPS].getZ());
-          glVertex3f(map[k+1][STEPS].getX(), 0.2, map[k+1][STEPS].getZ());
+          glVertex3f(map[k+1][STEPS].getX(), waterLevel, map[k+1][STEPS].getZ());
         glEnd();
       }
 
-      if (map[0][k].getY() <= 0.2) {
+      if (map[0][k].getY() <= waterLevel) {
         glBegin(GL_QUADS);
-          glVertex3f(map[0][k].getX(), 0.2, map[0][k].getZ());
+          glVertex3f(map[0][k].getX(), waterLevel, map[0][k].getZ());
           glVertex3f(map[0][k].getX(), map[0][k].getY(), map[0][k].getZ());
           glVertex3f(map[0][k+1].getX(), map[0][k+1].getY(), map[0][k+1].getZ());
-          glVertex3f(map[0][k+1].getX(), 0.2, map[0][k+1].getZ());
+          glVertex3f(map[0][k+1].getX(), waterLevel, map[0][k+1].getZ());
         glEnd();
       }
 
-      if (map[STEPS][k].getY() <= 0.2) {
+      if (map[STEPS][k].getY() <= waterLevel) {
         glBegin(GL_QUADS);
-          glVertex3f(map[STEPS][k].getX(), 0.2, map[STEPS][k].getZ());
+          glVertex3f(map[STEPS][k].getX(), waterLevel, map[STEPS][k].getZ());
           glVertex3f(map[STEPS][k].getX(), map[STEPS][k].getY(), map[STEPS][k].getZ());
           glVertex3f(map[STEPS][k+1].getX(), map[STEPS][k+1].getY(), map[STEPS][k+1].getZ());
-          glVertex3f(map[STEPS][k+1].getX(), 0.2, map[STEPS][k+1].getZ());
+          glVertex3f(map[STEPS][k+1].getX(), waterLevel, map[STEPS][k+1].getZ());
         glEnd();
       }
     }
@@ -388,6 +389,36 @@ void roughMenu(int id) {
   generateTerrain();
 }
 
+// Exaggeration menu callback.
+void exaggerationMenu(int id) {
+  if (id == 1) {
+    if (exaggeration < 0.95) {
+      exaggeration = exaggeration + 0.05;
+    }
+  }
+  else if (id == 2) {
+    if (exaggeration > 0.05) {
+      exaggeration = exaggeration - 0.05;
+    }
+  }
+
+  generateTerrain();
+}
+
+// Roughness menu callback.
+void waterMenu(int id) {
+  if (id == 1) {
+    if (waterLevel < 2.0) {
+      waterLevel = waterLevel + 0.05;
+    }
+  }
+  else if (id == 2) {
+    if (waterLevel > 0.05) {
+      waterLevel = waterLevel - 0.05;
+    }
+  }
+}
+
 int main(int argc, char **argv) {
   srand(time(NULL));
   // Initialize OpenGL.
@@ -411,7 +442,13 @@ int main(int argc, char **argv) {
   init();
 
   // Menus
-  int menu, l_menu, r_menu;
+  int menu, l_menu, r_menu, w_menu, e_menu;
+  e_menu = glutCreateMenu(exaggerationMenu);
+  glutAddMenuEntry("  +  ", 1);
+  glutAddMenuEntry("  -  ", 2);
+  w_menu = glutCreateMenu(waterMenu);
+  glutAddMenuEntry("  +  ", 1);
+  glutAddMenuEntry("  -  ", 2);
   r_menu = glutCreateMenu(roughMenu);
   glutAddMenuEntry("  +  ", 1);
   glutAddMenuEntry("  -  ", 2);
@@ -427,6 +464,8 @@ int main(int argc, char **argv) {
   glutAddMenuEntry("Reset", 2);
   glutAddSubMenu("LOD", l_menu);
   glutAddSubMenu("Roughness", r_menu);
+  glutAddSubMenu("Water Level", w_menu);
+  glutAddSubMenu("Exaggeration", e_menu);
   glutAttachMenu(GLUT_RIGHT_BUTTON);
 
   // Mainloop

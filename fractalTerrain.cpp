@@ -8,13 +8,10 @@
 
 #include "fractalTerrain.hpp"
 
-
-
-
+// Generates fractal terrain.
 FractalTerrain::FractalTerrain (int lod, double roughness) {
         this->roughness = roughness;
         this->divisions = 1 << lod;
-        //terrain = new double[divisions + 1][divisions + 1];
         terrain = std::vector<std::vector <double> >(divisions + 1, std::vector<double>(divisions + 1));
 
         blue = RGB(0.0, 0.3, 1.0);
@@ -26,6 +23,7 @@ FractalTerrain::FractalTerrain (int lod, double roughness) {
         terrain[divisions][divisions] = rnd ();
         terrain[divisions][0] = rnd ();
         double rough = roughness;
+        // Diamond-Square algorithm.
         for (int i = 0; i < lod; ++ i) {
             int q = 1 << i, r = 1 << (lod - i), s = r >> 1;
             for (int j = 0; j < divisions; j += r)
