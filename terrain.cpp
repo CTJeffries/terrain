@@ -1,21 +1,17 @@
-
 // Colby Jeffries & Tommy Bacher
 // terrain.cpp
 
-// PROGRAM DESCRIPTION HERE
+// This is the main driver to generate a fractal terrain.
 
 // Controls:
-//  CONTROLS HERE
+//  Right click: Open menu.
 
 // Modules
 #include <stdio.h>
 #include <stdlib.h>
-//#include <math.h>
+#include <math.h>
 #include <unistd.h>
-//#include <iostream>
-//#include "tgaClass.h"
 #include <string.h>
-//#include "glm.h"
 #include <vector>
 #include <time.h>
 #include "fractalTerrain.hpp"
@@ -43,45 +39,46 @@ static int lastTime	= 0;
 static int frameCount = 0;
 static char strFrameRate[20] = {0};
 
+// Global variables.
+int LOD = 5;
+float rough = 0.5;
+long long STEPS = (long long) pow(2, LOD);
+long long NUM_TRIANGLES = STEPS * STEPS * 2;
+float rot = 0;
+int water = 0;
+
 // Global data structures
 int keyboard[256] = {0};
+vector<Triangle> triangles;
+vector<vector<Triple> > map(STEPS+1, vector<Triple>(STEPS+1));
 
 // Window Height and Width Respectively
 static GLsizei wh = 1000, ww = 1000;
 
-// Globals materials
+// Globals materials & light info.
 GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
 GLfloat no_shine[] = {0.0};
 
 GLfloat light_pos[] = {1.0, 3.0, 1.0, 1.0};
 
-int LOD = 5;
-float rough = 0.5;
-long long STEPS = (long long) pow(2, LOD);
-long long NUM_TRIANGLES = STEPS * STEPS * 2;
-vector<Triangle> triangles;
-vector<vector<Triple> > map(STEPS+1, vector<Triple>(STEPS+1));
-float rot = 0;
-int water = 0;
-
 // Function prototypes
 // Its probably about time for a header file.
 void display(void);
-static void mouse(int, int, int, int);
-static void motion(int, int);
-static void keyboardUp(unsigned char, int, int);
-static void keyboardDown(unsigned char, int, int);
 void keyboardCheck(void);
 void init(void);
 void resetMats(void);
 void CalculateFrameRate(void);
 void generateTerrain(void);
+void idle(void);
 
 void generateTerrain() {
   double exaggeration = .7;
 
   vector<vector<RGB> > colors(STEPS+1, vector<RGB>(STEPS+1));
+  // Generates terrain.
   FractalTerrain terrain(LOD, rough);
+
+  // Populate map and colors from terrain.
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
       double x = 1.0 * i / STEPS, z = 1.0 * j / STEPS;
@@ -91,6 +88,7 @@ void generateTerrain() {
     }
   }
 
+  // Populate triangle list.
   for (int i = 0; i < STEPS; ++ i) {
     for (int j = 0; j < STEPS; ++ j) {
       triangles.push_back(Triangle (i, j, i + 1, j, i, j + 1));
@@ -98,24 +96,29 @@ void generateTerrain() {
     }
   }
 
+  // Light info.
   double ambient = .3;
   double diffuse = 6.0;
+
   vector<vector<Triple> > normals(STEPS+1, vector<Triple>(STEPS+1));
+  vector<vector <double> > shade(STEPS + 1, vector<double>(STEPS + 1));
+
+  // Sun position.
   Triple sun = Triple (1.0, 3.0, 1.0);
 
-  vector<vector <double> > shade(STEPS + 1, vector<double>(STEPS + 1));
+  // Calculate shadows.
   for (int i = 0; i <= STEPS; ++ i) {
     for (int j = 0; j <= STEPS; ++ j) {
       shade[i][j] = 1.0;
       Triple vertex = map[i][j];
       Triple ray = sun.subtract(vertex);
       double distance = STEPS * sqrt (ray.getX() * ray.getY() + ray.getZ() * ray.getZ());
-      /* step along ray in horizontal units of grid width */
       for (double place = 1.0; place < distance; place += 1.0) {
         Triple sample = vertex.add (ray.scale (place / distance));
         double sx = sample.getX(), sy = sample.getY(), sz = sample.getZ();
         if ((sx < 0.0) || (sx > 1.0) || (sz < 0.0) || (sz > 1.0))
-          break; /* steppd off terrain */
+          break;
+
         double ground = exaggeration * terrain.getAltitude (sx, sz);
         if (ground >= sy) {
           shade[i][j] = 0.0;
@@ -125,10 +128,12 @@ void generateTerrain() {
     }
   }
 
+  // Poplulate Normal vector.
   for (long i = 0; i < STEPS; i++)
     for (int j = 0; j < STEPS; j++)
       normals[i][j] = Triple(0.0, 0.0, 0.0);
-  /* compute triangle normals and vertex averaged normals */
+
+  // Calculate normals.
   for (int i = 0; i < NUM_TRIANGLES; ++ i) {
     Triple v0 = map[triangles[i].i[0]][triangles[i].j[0]],
       v1 = map[triangles[i].i[1]][triangles[i].j[1]],
@@ -141,7 +146,7 @@ void generateTerrain() {
     }
   }
 
-  /* compute vertex colors and triangle average colors */
+  // Calculate colors.
   for (long i = 0; i < NUM_TRIANGLES; ++i) {
     RGB avg = RGB(0.0, 0.0, 0.0);
     for (int j = 0; j < 3; ++j) {
@@ -179,6 +184,7 @@ void display(void) {
   glPushMatrix();
   glTranslatef(-0.5, 0.0, -0.5);
 
+  // Draw triangles of the terrain.
   for (long k=0; k<NUM_TRIANGLES; k++) {
     Triangle t = triangles[k];
     glBegin(GL_TRIANGLES);
@@ -192,6 +198,7 @@ void display(void) {
     glEnd();
   }
 
+  // Draw sides of "land slice".
   for(long k=0; k<STEPS; k++) {
     glColor3f(0.35, 0.3, 0.27);
     glBegin(GL_QUADS);
@@ -224,6 +231,7 @@ void display(void) {
     glEnd();
   }
 
+  // If water, draw water.
   if (water == 1) {
     glColor3f(0.0, 0.2, 1.0);
     glBegin(GL_QUADS);
@@ -278,16 +286,6 @@ void display(void) {
 	CalculateFrameRate();
 }
 
-// For camera rotation.
-static void mouse(int button, int state, int x, int y) {
-  NULL;
-}
-
-// For camera rotation.
-static void motion(int x, int y) {
-  NULL;
-}
-
 // Resets all materials to ensure no unintentional effects.
 void resetMats(void) {
   glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
@@ -311,21 +309,6 @@ void init(void) {
   generateTerrain();
 }
 
-// Updates keyboard state when a key is released.
-void keyboardUp(unsigned char key, int x, int y) {
-  keyboard[key] = 0;
-}
-
-// Updates keyboard state when a key is pressed. Also handles the toggles.
-void keyboardDown(unsigned char key, int x, int y) {
-  keyboard[key] = 1;
-}
-
-// Does the actions of the keys.
-void keyboardCheck(void) {
-  NULL;
-}
-
 // Reshape callback that preserves aspect ratio. Also implements the zoom.
 void myReshape(int w, int h) {
   glMatrixMode(GL_PROJECTION);
@@ -339,7 +322,6 @@ void myReshape(int w, int h) {
 
 // Idle callback. Drives the game for the most part.
 void idle() {
-  keyboardCheck();
   rot += 0.3;
   if (rot > 360.0) rot = rot - 360.0;
   glutPostRedisplay();
@@ -360,6 +342,7 @@ void CalculateFrameRate(void) {
 	glutPostRedisplay();
 }
 
+// Large menu callback.
 void menuFunc(int id) {
   if (id == 1) {
     if (water == 0) {
@@ -374,6 +357,7 @@ void menuFunc(int id) {
   }
 }
 
+// LOD Menu callback.
 void lodMenu(int id) {
   LOD = id;
 
@@ -388,6 +372,7 @@ void lodMenu(int id) {
   generateTerrain();
 }
 
+// Roughness menu callback.
 void roughMenu(int id) {
   if (id == 1) {
     if (rough < 0.95) {
@@ -419,10 +404,6 @@ int main(int argc, char **argv) {
   // Set callbacks.
   glutIgnoreKeyRepeat(1);
   glutDisplayFunc(display);
-  glutMouseFunc(mouse);
-  glutMotionFunc(motion);
-  glutKeyboardFunc(keyboardDown);
-  glutKeyboardUpFunc(keyboardUp);
   glutReshapeFunc(myReshape);
   glutIdleFunc(idle);
 
